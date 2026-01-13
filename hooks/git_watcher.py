@@ -23,7 +23,7 @@ def is_git_command(tool_input: dict) -> bool:
 def detect_git_event(command: str) -> str:
     """Detect the type of git event from command."""
     parts = command.strip().split()
-    if len(parts) < 2:  # FIXED SYNTAX ERROR from plan
+    if len(parts) < 2:
         return None
 
     git_subcommand = parts[1]
