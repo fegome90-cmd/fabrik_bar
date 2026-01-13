@@ -56,7 +56,7 @@ def get_session_context() -> dict:
 def main():
     # Parse hook input from stdin
     try:
-        input_data = json.load(sys.stdin)
+        input_data = json.loads(sys.stdin.read())
     except json.JSONDecodeError:
         input_data = {}
 
