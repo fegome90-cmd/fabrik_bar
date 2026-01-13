@@ -1,0 +1,10 @@
+[run]
+source = ../lib
+omit = */__pycache__/*
+branch = True
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:
+    raise NotImplementedError
