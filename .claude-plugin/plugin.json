@@ -1,0 +1,11 @@
+{
+  "name": "fabrik_bar",
+  "version": "1.0.0",
+  "description": "Hybrid information display system for Claude Code - persistent statusline + contextual hook notifications",
+  "author": {
+    "name": "Felipe"
+  },
+  "license": "MIT",
+  "keywords": ["statusline", "context", "notifications", "hooks"],
+  "skills": []
+}
