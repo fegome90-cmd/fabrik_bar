@@ -32,11 +32,35 @@ def calculate_context_percent(input_data: dict) -> int:
 
 
 def main():
+    """UserPromptSubmit hook main entry point.
+
+    Expected JSON input via stdin:
+    {
+        "context_window": {
+            "current_usage": {
+                "input_tokens": 50000,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0
+            },
+            "context_window_size": 200000
+        }
+    }
+
+    Outputs context alert as additionalContext JSON to stdout when thresholds exceeded.
+    Exits silently (code 0) when below threshold.
+    """
     # Parse hook input from stdin
+    # Uses json.loads(stdin.read()) instead of json.load(stdin) to reliably handle
+    # piped input, which can cause silent failures with file-like object parsing.
     try:
-        input_data = json.loads(sys.stdin.read())
-    except json.JSONDecodeError:
-        sys.exit(0)
+        stdin_content = sys.stdin.read()
+        input_data = json.loads(stdin_content)
+    except json.JSONDecodeError as e:
+        sys.stderr.write(f"[ERROR] user_prompt_submit: Invalid JSON input: {e}\n")
+        sys.exit(1)  # Exit with error code since this hook requires valid JSON
+    except (IOError, OSError) as e:
+        sys.stderr.write(f"[ERROR] user_prompt_submit: Failed to read stdin: {e}\n")
+        sys.exit(1)
 
     # Load config
     config = load_config()

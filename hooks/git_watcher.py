@@ -74,11 +74,34 @@ def extract_git_details(command: str, event: str) -> dict:
 
 
 def main():
+    """PreToolUse hook main entry point for git event detection.
+
+    Expected JSON input via stdin:
+    {
+        "toolInput": {
+            "command": "git checkout main"
+        }
+    }
+
+    Outputs git notification as additionalContext JSON to stdout when:
+    - Branch switched (git checkout/switch)
+    - Commit made (git commit -m "message")
+    - Merge, push, or pull commands detected
+
+    Exits silently (code 0) when not a git command or event disabled.
+    """
     # Parse hook input from stdin
+    # Uses json.loads(stdin.read()) instead of json.load(stdin) to reliably handle
+    # piped input, which can cause silent failures with file-like object parsing.
     try:
-        input_data = json.loads(sys.stdin.read())
-    except json.JSONDecodeError:
-        sys.exit(0)
+        stdin_content = sys.stdin.read()
+        input_data = json.loads(stdin_content)
+    except json.JSONDecodeError as e:
+        sys.stderr.write(f"[ERROR] git_watcher: Invalid JSON input: {e}\n")
+        sys.exit(1)  # Exit with error code since this hook requires valid JSON
+    except (IOError, OSError) as e:
+        sys.stderr.write(f"[ERROR] git_watcher: Failed to read stdin: {e}\n")
+        sys.exit(1)
 
     # Load config
     config = load_config()

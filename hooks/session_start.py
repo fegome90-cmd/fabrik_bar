@@ -54,10 +54,31 @@ def get_session_context() -> dict:
 
 
 def main():
+    """SessionStart hook main entry point.
+
+    Expected JSON input via stdin:
+    {
+        "model": {
+            "display_name": "Claude Opus 4.5"
+        },
+        ...other optional fields...
+    }
+
+    Outputs session summary as additionalContext JSON to stdout.
+    """
     # Parse hook input from stdin
+    # Uses json.loads(stdin.read()) instead of json.load(stdin) to reliably handle
+    # piped input, which can cause silent failures with file-like object parsing.
     try:
-        input_data = json.loads(sys.stdin.read())
-    except json.JSONDecodeError:
+        stdin_content = sys.stdin.read()
+        input_data = json.loads(stdin_content)
+    except json.JSONDecodeError as e:
+        sys.stderr.write(f"[ERROR] session_start: Invalid JSON input: {e}\n")
+        sys.stderr.write(f"Continuing with minimal context...\n")
+        input_data = {}  # Explicit fallback after logging
+    except (IOError, OSError) as e:
+        sys.stderr.write(f"[ERROR] session_start: Failed to read stdin: {e}\n")
+        sys.stderr.write(f"Continuing with minimal context...\n")
         input_data = {}
 
     # Get model from input
