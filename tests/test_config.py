@@ -9,18 +9,64 @@ class TestLoadConfig:
 
     def test_returns_defaults_when_config_missing(self, tmp_path):
         """Should return defaults when config file doesn't exist."""
-        # TODO: Implement test
-        pass
+        import tempfile
+        import os
+
+        # Temporarily set config to non-existent path
+        from lib import config
+        original_path = config.CONFIG_PATH
+        config.CONFIG_PATH = tmp_path / "nonexistent.md"
+
+        try:
+            result = config.load_config()
+            assert result is not None
+            assert result["statusline"]["show_bundles"] is True
+        finally:
+            config.CONFIG_PATH = original_path
 
     def test_parses_yaml_frontmatter(self, tmp_path):
         """Should extract YAML from markdown frontmatter."""
-        # TODO: Implement test
-        pass
+        from lib import config
+
+        config_file = tmp_path / "test.md"
+        config_file.write_text("""---
+enabled: true
+timeout: 100
+---
+Some markdown content
+""")
+
+        original_path = config.CONFIG_PATH
+        config.CONFIG_PATH = config_file
+
+        try:
+            result = config.load_config()
+            assert result is not None
+        finally:
+            config.CONFIG_PATH = original_path
 
     def test_merges_with_defaults(self, tmp_path):
         """Should merge user config with defaults."""
-        # TODO: Implement test
-        pass
+        from lib import config
+
+        config_file = tmp_path / "test.md"
+        config_file.write_text("""---
+statusline:
+  show_bundles: false
+---
+""")
+
+        original_path = config.CONFIG_PATH
+        config.CONFIG_PATH = config_file
+
+        try:
+            result = config.load_config()
+            # User override applied
+            assert result["statusline"]["show_bundles"] is False
+            # Other defaults preserved
+            assert result["statusline"]["show_session_timer"] is True
+        finally:
+            config.CONFIG_PATH = original_path
 
 
 class TestGetConfig:
