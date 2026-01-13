@@ -76,7 +76,7 @@ def extract_git_details(command: str, event: str) -> dict:
 def main():
     # Parse hook input from stdin
     try:
-        input_data = json.load(sys.stdin)
+        input_data = json.loads(sys.stdin.read())
     except json.JSONDecodeError:
         sys.exit(0)
 
