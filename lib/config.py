@@ -39,7 +39,7 @@ def load_config() -> Dict[str, Any]:
         return DEFAULTS
 
     try:
-        with open(CONFIG_PATH) as f:
+        with open(CONFIG_PATH, encoding='utf-8') as f:
             # Extract YAML from markdown (between --- and ---)
             content = f.read()
             if content.startswith("---"):
