@@ -50,7 +50,9 @@ def load_config() -> Dict[str, Any]:
                 config = _parse_simple_yaml(yaml_content)
                 return {**DEFAULTS, **config} if config else DEFAULTS
             return DEFAULTS
-    except Exception:
+    except Exception as e:
+        from logging import log_error
+        log_error(f"Failed to load config: {e}")
         return DEFAULTS
 
 
