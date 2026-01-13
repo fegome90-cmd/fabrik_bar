@@ -34,7 +34,7 @@ def calculate_context_percent(input_data: dict) -> int:
 def main():
     # Parse hook input from stdin
     try:
-        input_data = json.load(sys.stdin)
+        input_data = json.loads(sys.stdin.read())
     except json.JSONDecodeError:
         sys.exit(0)
 
