@@ -92,3 +92,5 @@ See design doc: `~/.claude/docs/plans/2026-01-13-fabrik_bar-design.md`
 ## License
 
 MIT
+# Test PR Demo
+This is a demo PR for testing the test-pr skill.
