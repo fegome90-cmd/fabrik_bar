@@ -85,6 +85,38 @@ fabrik_bar/
 └── fabrik_bar.local.md      # Local configuration
 ```
 
+## Troubleshooting
+
+### Statusline not appearing
+- Check `~/.claude/settings.json` has statusLine config
+- Verify `statusline.sh` is executable: `chmod +x ~/.claude/statusline.sh`
+- Check Claude Code logs: `~/.claude/logs/`
+
+### Hooks not firing
+- Verify Python scripts are executable: `chmod +x hooks/*.py`
+- Enable debug logging: `export FABRIK_DEBUG=1`
+- Check hook JSON syntax: `cat hooks/hooks.json | jq .`
+
+### Missing bundle info
+- Verify `~/.claude/.context/core/` directory exists
+- Check context files are present
+
+### Session timer not incrementing
+- Check `~/.claude/tmp/session_start` file permissions
+- Verify date command works
+
+### GitHub PR info not showing
+- Verify gh CLI is installed: `gh --version`
+- Check you're in a git repository with an open PR
+- Check auth: `gh auth status`
+
+## Performance Considerations
+
+- **Statusline refresh rate**: Controlled by Claude Code (~300ms)
+- **GitHub PR caching**: PR info cached for 60 seconds to avoid network calls
+- **Git commands**: Use `git -C` to run in workspace directory
+- **MCP checking**: Reads mcp.json on each refresh (no caching)
+
 ## Development
 
 See design doc: `~/.claude/docs/plans/2026-01-13-fabrik_bar-design.md`
