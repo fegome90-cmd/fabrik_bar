@@ -1,7 +1,12 @@
 """Configuration loader for fabrik_bar."""
 
+import sys
 from pathlib import Path
 from typing import Any, Dict
+
+# Ensure current directory is in path for sibling imports
+if Path(__file__).parent not in sys.path:
+    sys.path.insert(0, str(Path(__file__).parent))
 
 # Config path - first check plugin local, then global
 PLUGIN_DIR = Path(__file__).parent.parent
@@ -48,10 +53,20 @@ def load_config() -> Dict[str, Any]:
                     yaml_content, _ = yaml_content.split("---", 1)
                 # Simple YAML parsing for our flat config structure
                 config = _parse_simple_yaml(yaml_content)
-                return {**DEFAULTS, **config} if config else DEFAULTS
+                result = {**DEFAULTS, **config} if config else DEFAULTS
+
+                # Validate configuration
+                from validator import validate_config
+                from logger import log_warning
+                is_valid, errors = validate_config(result)
+                if not is_valid:
+                    for error in errors:
+                        log_warning(f"Config validation error: {error}")
+
+                return result
             return DEFAULTS
     except Exception as e:
-        from logging import log_error
+        from logger import log_error
         log_error(f"Failed to load config: {e}")
         return DEFAULTS
 
