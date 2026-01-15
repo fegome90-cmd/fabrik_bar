@@ -8,6 +8,9 @@ from typing import Any, Dict
 if Path(__file__).parent not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent))
 
+# Import logger functions at module level
+from logger import log_error, log_warning
+
 # Config path - first check plugin local, then global
 PLUGIN_DIR = Path(__file__).parent.parent
 CONFIG_PATH = PLUGIN_DIR / "fabrik_bar.local.md"
@@ -62,14 +65,19 @@ def load_config() -> Dict[str, Any]:
                 try:
                     config = _parse_simple_yaml(yaml_content)
                     result = {**DEFAULTS, **config} if config else DEFAULTS
-                except (ValueError, KeyError, AttributeError) as e:
-                    from logger import log_warning
-                    log_warning(f"Failed to parse YAML config: {e}")
+                except (ValueError, KeyError) as e:
+                    # Expected parsing errors - malformed YAML
+                    log_error(f"Failed to parse YAML config: {e}")
+                    result = DEFAULTS
+                except AttributeError as e:
+                    # Unexpected error - likely a bug in the parser
+                    import traceback
+                    log_error(f"Bug in YAML parser (AttributeError): {e}")
+                    log_error(f"Traceback: {traceback.format_exc()}")
                     result = DEFAULTS
 
                 # Validate configuration
                 from validator import validate_config
-                from logger import log_warning
                 is_valid, errors = validate_config(result)
                 if not is_valid:
                     for error in errors:
@@ -78,15 +86,12 @@ def load_config() -> Dict[str, Any]:
                 return result
             return DEFAULTS
     except (OSError, IOError) as e:
-        from logger import log_error
         log_error(f"Failed to read config file {CONFIG_PATH}: {e}")
         return DEFAULTS
     except (ValueError, KeyError) as e:
-        from logger import log_error
         log_error(f"Failed to parse config file {CONFIG_PATH}: {e}")
         return DEFAULTS
     except Exception as e:
-        from logger import log_error
         log_error(f"Unexpected error loading config: {type(e).__name__}: {e}")
         return DEFAULTS
 
