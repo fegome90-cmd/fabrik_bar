@@ -11,6 +11,7 @@ lib_path = str(Path(__file__).parent.parent / "lib")
 sys.path.insert(0, lib_path)
 
 from config import load_config
+from logger import log_debug
 from notifier import format_git_notification
 
 
@@ -59,8 +60,12 @@ def extract_git_details(command: str, event: str) -> dict:
                 details["to"] = result.stdout.strip()
                 # We'd need to track previous branch separately
                 details["from"] = "previous"
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            pass
+        except FileNotFoundError:
+            log_debug("Git not found in PATH, using 'unknown' for branch")
+            details["to"] = "unknown"
+        except subprocess.TimeoutExpired:
+            log_debug("Git command timed out, using 'unknown' for branch")
+            details["to"] = "unknown"
 
     elif event == "commit":
         # Try to get commit message

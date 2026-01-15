@@ -47,8 +47,15 @@ def get_session_context() -> dict:
 
         session_file = context_dir / "session.md"
         if session_file.exists():
-            active_items = len([line for line in session_file.read_text().splitlines() if line.startswith(("* ", "- "))])
-            context["active_bundles"] = active_items
+            try:
+                content = session_file.read_text()
+                active_items = len([line for line in content.splitlines() if line.startswith(("* ", "- "))])
+                context["active_bundles"] = active_items
+            except (OSError, PermissionError) as e:
+                # File was deleted or became unreadable between exists() and read_text()
+                # Use log_debug for this expected failure case
+                log_debug(f"Failed to read session.md: {e}")
+                context["active_bundles"] = 0
 
     # Model will be provided from hook input
     context["model"] = "Claude"

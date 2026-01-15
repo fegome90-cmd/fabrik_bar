@@ -48,9 +48,16 @@ def load_config() -> Dict[str, Any]:
             # Extract YAML from markdown (between --- and ---)
             content = f.read()
             if content.startswith("---"):
-                _, yaml_content = content.split("---", 1)
+                parts = content.split("---", 1)
+                if len(parts) < 2:
+                    # Malformed YAML delimiters - log warning and use defaults
+                    sys.stderr.write("[WARN] config: Malformed YAML delimiters, using defaults\n")
+                    return DEFAULTS
+                _, yaml_content = parts
                 if "---" in yaml_content:
-                    yaml_content, _ = yaml_content.split("---", 1)
+                    yaml_parts = yaml_content.split("---", 1)
+                    if len(yaml_parts) >= 2:
+                        yaml_content, _ = yaml_parts[0], yaml_parts[1]
                 # Simple YAML parsing for our flat config structure
                 config = _parse_simple_yaml(yaml_content)
                 result = {**DEFAULTS, **config} if config else DEFAULTS

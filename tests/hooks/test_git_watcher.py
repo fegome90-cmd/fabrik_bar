@@ -54,7 +54,7 @@ def test_git_watcher_git_checkout_detects_branch(valid_git_command_input, capsys
     # Mock subprocess to avoid actual git calls
     mock_result = MagicMock()
     mock_result.returncode = 0
-    mock_result.stdout.strip.return_value = "main"
+    mock_result.stdout = "main"
 
     with patch('sys.stdin', mock_stdin):
         with patch('subprocess.run', return_value=mock_result):

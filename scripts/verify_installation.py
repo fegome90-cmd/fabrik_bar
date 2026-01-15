@@ -118,7 +118,13 @@ def main():
         check_hook_scripts,
     ]
 
-    results = [check() for check in checks]
+    results = []
+    for check in checks:
+        try:
+            results.append(check())
+        except Exception as e:
+            sys.stderr.write(f"[ERROR] Check {check.__name__} crashed: {e}\n")
+            results.append(False)
 
     print(f"\n{'='*50}")
     if all(results):

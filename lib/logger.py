@@ -1,25 +1,33 @@
 """Simple logging for fabrik_bar hooks."""
 
+import os
 import sys
 from pathlib import Path
 
 
 def log_debug(message: str) -> None:
     """Log debug message to stderr if FABRIK_DEBUG is set."""
-    import os
-
     if os.environ.get("FABRIK_DEBUG"):
-        print(f"[DEBUG] {message}", file=sys.stderr)
+        try:
+            print(f"[DEBUG] {message}", file=sys.stderr)
+        except (OSError, ValueError):
+            pass  # Silently fail if stderr is unavailable
 
 
 def log_error(message: str) -> None:
     """Log error message to stderr."""
-    print(f"[ERROR] {message}", file=sys.stderr)
+    try:
+        print(f"[ERROR] {message}", file=sys.stderr)
+    except (OSError, ValueError):
+        pass  # Silently fail if stderr is unavailable
 
 
 def log_warning(message: str) -> None:
     """Log warning message to stderr."""
-    print(f"[WARN] {message}", file=sys.stderr)
+    try:
+        print(f"[WARN] {message}", file=sys.stderr)
+    except (OSError, ValueError):
+        pass  # Silently fail if stderr is unavailable
 
 
 def get_log_path() -> Path:
