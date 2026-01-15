@@ -64,10 +64,6 @@ def main():
         sys.stderr.write(f"Continuing with minimal context...\n")
         sys.exit(0)  # Exit gracefully to avoid hook being disabled
 
-    # Fallback: if JSON parsing failed, use minimal input_data
-    if 'input_data' not in locals():
-        input_data = {}
-
     # Load config
     config = load_config()
     alerts_config = config.get("hooks", {}).get("context_alerts", {})

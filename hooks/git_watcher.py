@@ -105,10 +105,6 @@ def main():
         sys.stderr.write(f"Exiting silently (not a git command context)...\n")
         sys.exit(0)  # Exit gracefully to avoid hook being disabled
 
-    # Fallback: if JSON parsing failed, exit silently (not a valid git command)
-    if 'input_data' not in locals():
-        sys.exit(0)
-
     # Load config
     config = load_config()
     git_config = config.get("hooks", {}).get("git_events", {})
