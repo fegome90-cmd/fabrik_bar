@@ -26,8 +26,12 @@ def test_user_prompt_submit_invalid_json_exits_gracefully(capsys):
     assert exc_info.value.code == 0
 
     captured = capsys.readouterr()
-    assert "[ERROR] user_prompt_submit: Invalid JSON input" in captured.err
+    assert "[ERROR] user_prompt_submit: Invalid JSON input at position" in captured.err
+    assert "Input received:" in captured.err
     assert "Continuing with minimal context..." in captured.err
+
+    # Verify graceful degradation - exits early with no output (different from session_start)
+    assert captured.out.strip() == ""
 
 
 def test_user_prompt_submit_below_threshold_no_alert(valid_user_prompt_input, capsys):

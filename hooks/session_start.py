@@ -11,6 +11,7 @@ lib_path = str(Path(__file__).parent.parent / "lib")
 sys.path.insert(0, lib_path)
 
 from config import load_config
+from logger import log_debug
 from notifier import format_session_summary
 
 
@@ -33,8 +34,10 @@ def get_session_context() -> dict:
         )
         if result.returncode == 0:
             context["git_branch"] = result.stdout.strip()
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
+    except FileNotFoundError:
+        log_debug("Git not found in PATH, skipping branch detection")
+    except subprocess.TimeoutExpired:
+        log_debug("Git command timed out after 2 seconds, skipping branch detection")
 
     # Bundle count
     context_dir = Path.home() / ".claude" / ".context" / "core"
@@ -73,7 +76,8 @@ def main():
         stdin_content = sys.stdin.read()
         input_data = json.loads(stdin_content)
     except json.JSONDecodeError as e:
-        sys.stderr.write(f"[ERROR] session_start: Invalid JSON input: {e}\n")
+        sys.stderr.write(f"[ERROR] session_start: Invalid JSON input at position {e.pos}: {e.msg}\n")
+        sys.stderr.write(f"[ERROR] Input received: {stdin_content[:100]}...\n")
         sys.stderr.write(f"Continuing with minimal context...\n")
         input_data = {}  # Explicit fallback after logging
     except (IOError, OSError) as e:

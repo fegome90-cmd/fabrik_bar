@@ -28,8 +28,14 @@ def test_session_start_invalid_json_exits_gracefully(capsys):
 
     # Should log error to stderr
     captured = capsys.readouterr()
-    assert "[ERROR] session_start: Invalid JSON input" in captured.err
+    assert "[ERROR] session_start: Invalid JSON input at position" in captured.err
+    assert "Input received:" in captured.err
     assert "Continuing with minimal context..." in captured.err
+
+    # Verify graceful degradation - still produces output
+    output = json.loads(captured.out)
+    assert "hookSpecificOutput" in output
+    assert output["hookSpecificOutput"]["hookEventName"] == "SessionStart"
 
 
 def test_session_start_io_error_exits_gracefully(capsys):
@@ -53,11 +59,16 @@ def test_session_start_io_error_exits_gracefully(capsys):
 
 def test_session_start_valid_input_processes(valid_session_start_input, capsys):
     """Test that valid input processes correctly."""
-    # Mock stdin with valid JSON
+    import io
     mock_stdin = MagicMock()
     mock_stdin.read.return_value = json.dumps(valid_session_start_input)
 
-    with patch('sys.stdin', mock_stdin):
+    # Mock subprocess to avoid actual git calls
+    with patch('sys.stdin', mock_stdin), \
+         patch('subprocess.run') as mock_run:
+        # Simulate git not being available
+        mock_run.side_effect = FileNotFoundError("git not found")
+
         with pytest.raises(SystemExit) as exc_info:
             session_start.main()
 

@@ -65,9 +65,17 @@ def load_config() -> Dict[str, Any]:
 
                 return result
             return DEFAULTS
+    except (OSError, IOError) as e:
+        from logger import log_error
+        log_error(f"Failed to read config file {CONFIG_PATH}: {e}")
+        return DEFAULTS
+    except (ValueError, KeyError) as e:
+        from logger import log_error
+        log_error(f"Failed to parse config file {CONFIG_PATH}: {e}")
+        return DEFAULTS
     except Exception as e:
         from logger import log_error
-        log_error(f"Failed to load config: {e}")
+        log_error(f"Unexpected error loading config: {type(e).__name__}: {e}")
         return DEFAULTS
 
 

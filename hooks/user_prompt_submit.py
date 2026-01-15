@@ -56,7 +56,8 @@ def main():
         stdin_content = sys.stdin.read()
         input_data = json.loads(stdin_content)
     except json.JSONDecodeError as e:
-        sys.stderr.write(f"[ERROR] user_prompt_submit: Invalid JSON input: {e}\n")
+        sys.stderr.write(f"[ERROR] user_prompt_submit: Invalid JSON input at position {e.pos}: {e.msg}\n")
+        sys.stderr.write(f"[ERROR] Input received: {stdin_content[:100]}...\n")
         sys.stderr.write(f"Continuing with minimal context...\n")
         sys.exit(0)  # Exit gracefully to avoid hook being disabled
     except (IOError, OSError) as e:
