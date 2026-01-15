@@ -73,7 +73,11 @@ def main():
         sys.exit(0)
 
     # Calculate context usage
-    percent = calculate_context_percent(input_data)
+    try:
+        percent = calculate_context_percent(input_data)
+    except (ValueError, TypeError, ZeroDivisionError) as e:
+        sys.stderr.write(f"[ERROR] user_prompt_submit: Failed to calculate context percent: {e}\n")
+        sys.exit(0)  # Exit gracefully
 
     # Check thresholds
     warning_threshold = alerts_config.get("warning_threshold", 80)

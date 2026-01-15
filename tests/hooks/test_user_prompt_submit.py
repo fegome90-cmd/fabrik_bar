@@ -69,3 +69,24 @@ def test_user_prompt_submit_at_critical_threshold(critical_context_input, capsys
     assert output["hookSpecificOutput"]["hookEventName"] == "UserPromptSubmit"
     # additionalContext should contain the alert
     assert output["hookSpecificOutput"]["additionalContext"] is not None
+
+
+def test_calculate_context_percent_handles_invalid_input(capsys):
+    """Test that calculation errors are handled gracefully."""
+    # Input with string instead of number
+    invalid_input = {
+        "context_window": {
+            "current_usage": {"input_tokens": "not_a_number"},
+            "context_window_size": 200000
+        }
+    }
+    mock_stdin = MagicMock()
+    mock_stdin.read.return_value = json.dumps(invalid_input)
+
+    with patch('sys.stdin', mock_stdin):
+        with pytest.raises(SystemExit) as exc_info:
+            user_prompt_submit.main()
+
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "[ERROR]" in captured.err
