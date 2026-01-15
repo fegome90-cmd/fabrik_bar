@@ -11,6 +11,7 @@ lib_path = str(Path(__file__).parent.parent / "lib")
 sys.path.insert(0, lib_path)
 
 from config import load_config
+from hook_utils import write_hook_output
 from logger import log_debug
 from notifier import format_git_notification
 
@@ -141,15 +142,7 @@ def main():
     notification = format_git_notification(event, details)
 
     # Output
-    output = {
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "additionalContext": notification,
-        }
-    }
-
-    print(json.dumps(output))
-    sys.exit(0)
+    write_hook_output("PreToolUse", notification)
 
 
 if __name__ == "__main__":

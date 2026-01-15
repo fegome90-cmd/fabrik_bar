@@ -10,6 +10,7 @@ lib_path = str(Path(__file__).parent.parent / "lib")
 sys.path.insert(0, lib_path)
 
 from config import load_config, get_config
+from hook_utils import read_hook_input_or_exit, write_hook_output
 from notifier import format_context_alert
 
 
@@ -50,20 +51,7 @@ def main():
     Exits silently (code 0) when below threshold.
     """
     # Parse hook input from stdin
-    # Uses json.loads(stdin.read()) instead of json.load(stdin) to reliably handle
-    # piped input, which can cause silent failures with file-like object parsing.
-    try:
-        stdin_content = sys.stdin.read()
-        input_data = json.loads(stdin_content)
-    except json.JSONDecodeError as e:
-        sys.stderr.write(f"[ERROR] user_prompt_submit: Invalid JSON input at position {e.pos}: {e.msg}\n")
-        sys.stderr.write(f"[ERROR] Input received: {stdin_content[:100]}...\n")
-        sys.stderr.write(f"Continuing with minimal context...\n")
-        sys.exit(0)  # Exit gracefully to avoid hook being disabled
-    except (IOError, OSError) as e:
-        sys.stderr.write(f"[ERROR] user_prompt_submit: Failed to read stdin: {e}\n")
-        sys.stderr.write(f"Continuing with minimal context...\n")
-        sys.exit(0)  # Exit gracefully to avoid hook being disabled
+    input_data = read_hook_input_or_exit("user_prompt_submit")
 
     # Load config
     config = load_config()
@@ -91,13 +79,7 @@ def main():
 
     # Output alert if triggered
     if alert:
-        output = {
-            "hookSpecificOutput": {
-                "hookEventName": "UserPromptSubmit",
-                "additionalContext": alert,
-            }
-        }
-        print(json.dumps(output))
+        write_hook_output("UserPromptSubmit", alert)
 
     sys.exit(0)
 

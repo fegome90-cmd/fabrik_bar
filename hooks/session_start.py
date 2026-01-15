@@ -11,6 +11,7 @@ lib_path = str(Path(__file__).parent.parent / "lib")
 sys.path.insert(0, lib_path)
 
 from config import load_config
+from hook_utils import read_hook_input_with_fallback, write_hook_output
 from logger import log_debug
 from notifier import format_session_summary
 
@@ -77,20 +78,7 @@ def main():
     Outputs session summary as additionalContext JSON to stdout.
     """
     # Parse hook input from stdin
-    # Uses json.loads(stdin.read()) instead of json.load(stdin) to reliably handle
-    # piped input, which can cause silent failures with file-like object parsing.
-    try:
-        stdin_content = sys.stdin.read()
-        input_data = json.loads(stdin_content)
-    except json.JSONDecodeError as e:
-        sys.stderr.write(f"[ERROR] session_start: Invalid JSON input at position {e.pos}: {e.msg}\n")
-        sys.stderr.write(f"[ERROR] Input received: {stdin_content[:100]}...\n")
-        sys.stderr.write(f"Continuing with minimal context...\n")
-        input_data = {}  # Explicit fallback after logging
-    except (IOError, OSError) as e:
-        sys.stderr.write(f"[ERROR] session_start: Failed to read stdin: {e}\n")
-        sys.stderr.write(f"Continuing with minimal context...\n")
-        input_data = {}
+    input_data = read_hook_input_with_fallback("session_start")
 
     # Get model from input
     model = input_data.get("model", {}).get("display_name", "Claude")
@@ -108,15 +96,7 @@ def main():
     summary = format_session_summary(context)
 
     # Output as additionalContext
-    output = {
-        "hookSpecificOutput": {
-            "hookEventName": "SessionStart",
-            "additionalContext": summary,
-        }
-    }
-
-    print(json.dumps(output))
-    sys.exit(0)
+    write_hook_output("SessionStart", summary)
 
 
 if __name__ == "__main__":
