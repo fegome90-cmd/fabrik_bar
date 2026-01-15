@@ -59,8 +59,13 @@ def load_config() -> Dict[str, Any]:
                     if len(yaml_parts) >= 2:
                         yaml_content, _ = yaml_parts[0], yaml_parts[1]
                 # Simple YAML parsing for our flat config structure
-                config = _parse_simple_yaml(yaml_content)
-                result = {**DEFAULTS, **config} if config else DEFAULTS
+                try:
+                    config = _parse_simple_yaml(yaml_content)
+                    result = {**DEFAULTS, **config} if config else DEFAULTS
+                except (ValueError, KeyError, AttributeError) as e:
+                    from logger import log_warning
+                    log_warning(f"Failed to parse YAML config: {e}")
+                    result = DEFAULTS
 
                 # Validate configuration
                 from validator import validate_config
