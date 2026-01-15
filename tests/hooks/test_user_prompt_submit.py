@@ -90,3 +90,87 @@ def test_calculate_context_percent_handles_invalid_input(capsys):
     assert exc_info.value.code == 0
     captured = capsys.readouterr()
     assert "[ERROR]" in captured.err
+
+
+def test_calculate_context_percent_basic():
+    """Should calculate percentage correctly."""
+    input_data = {
+        "context_window": {
+            "current_usage": {
+                "input_tokens": 100000,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0
+            },
+            "context_window_size": 200000
+        }
+    }
+    result = user_prompt_submit.calculate_context_percent(input_data)
+    assert result == 50
+
+
+def test_calculate_context_percent_with_cache_tokens():
+    """Should include cache tokens in total."""
+    input_data = {
+        "context_window": {
+            "current_usage": {
+                "input_tokens": 50000,
+                "cache_creation_input_tokens": 20000,
+                "cache_read_input_tokens": 30000
+            },
+            "context_window_size": 200000
+        }
+    }
+    result = user_prompt_submit.calculate_context_percent(input_data)
+    assert result == 50  # (50+20+30)/200
+
+
+def test_calculate_context_percent_zero_max_tokens():
+    """Should return 0 when context_window_size is 0 (avoid division by zero)."""
+    input_data = {
+        "context_window": {
+            "current_usage": {"input_tokens": 100000},
+            "context_window_size": 0
+        }
+    }
+    result = user_prompt_submit.calculate_context_percent(input_data)
+    assert result == 0
+
+
+def test_calculate_context_percent_clamps_to_100():
+    """Should clamp percentages > 100 to 100."""
+    input_data = {
+        "context_window": {
+            "current_usage": {"input_tokens": 250000},
+            "context_window_size": 200000
+        }
+    }
+    result = user_prompt_submit.calculate_context_percent(input_data)
+    assert result == 100
+
+
+def test_calculate_context_percent_negative_clamps_to_zero():
+    """Should clamp negative percentages to 0."""
+    input_data = {
+        "context_window": {
+            "current_usage": {"input_tokens": -1000},
+            "context_window_size": 200000
+        }
+    }
+    result = user_prompt_submit.calculate_context_percent(input_data)
+    assert result == 0
+
+
+def test_calculate_context_percent_empty_input():
+    """Should handle empty input gracefully."""
+    input_data = {}
+    result = user_prompt_submit.calculate_context_percent(input_data)
+    assert result == 0
+
+
+def test_calculate_context_percent_missing_context_window():
+    """Should handle missing context_window gracefully."""
+    input_data = {
+        "other_field": "value"
+    }
+    result = user_prompt_submit.calculate_context_percent(input_data)
+    assert result == 0
