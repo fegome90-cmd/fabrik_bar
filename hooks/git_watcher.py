@@ -98,10 +98,16 @@ def main():
         input_data = json.loads(stdin_content)
     except json.JSONDecodeError as e:
         sys.stderr.write(f"[ERROR] git_watcher: Invalid JSON input: {e}\n")
-        sys.exit(1)  # Exit with error code since this hook requires valid JSON
+        sys.stderr.write(f"Exiting silently (not a git command context)...\n")
+        sys.exit(0)  # Exit gracefully to avoid hook being disabled
     except (IOError, OSError) as e:
         sys.stderr.write(f"[ERROR] git_watcher: Failed to read stdin: {e}\n")
-        sys.exit(1)
+        sys.stderr.write(f"Exiting silently (not a git command context)...\n")
+        sys.exit(0)  # Exit gracefully to avoid hook being disabled
+
+    # Fallback: if JSON parsing failed, exit silently (not a valid git command)
+    if 'input_data' not in locals():
+        sys.exit(0)
 
     # Load config
     config = load_config()

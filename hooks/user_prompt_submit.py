@@ -57,10 +57,16 @@ def main():
         input_data = json.loads(stdin_content)
     except json.JSONDecodeError as e:
         sys.stderr.write(f"[ERROR] user_prompt_submit: Invalid JSON input: {e}\n")
-        sys.exit(1)  # Exit with error code since this hook requires valid JSON
+        sys.stderr.write(f"Continuing with minimal context...\n")
+        sys.exit(0)  # Exit gracefully to avoid hook being disabled
     except (IOError, OSError) as e:
         sys.stderr.write(f"[ERROR] user_prompt_submit: Failed to read stdin: {e}\n")
-        sys.exit(1)
+        sys.stderr.write(f"Continuing with minimal context...\n")
+        sys.exit(0)  # Exit gracefully to avoid hook being disabled
+
+    # Fallback: if JSON parsing failed, use minimal input_data
+    if 'input_data' not in locals():
+        input_data = {}
 
     # Load config
     config = load_config()
