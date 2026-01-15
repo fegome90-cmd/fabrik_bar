@@ -28,7 +28,7 @@ def validate_config(config: Dict[str, Any]) -> tuple[bool, list[str]]:
         errors.append("warning_threshold must be less than critical_threshold")
 
     # Validate git events list
-    git_events = alerts.get("git_events", {})
+    git_events = config.get("hooks", {}).get("git_events", {})
     events = git_events.get("events", [])
     valid_events = ["branch_switch", "commit", "merge", "push", "pull"]
     for event in events:
