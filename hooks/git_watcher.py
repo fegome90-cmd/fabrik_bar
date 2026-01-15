@@ -11,7 +11,7 @@ lib_path = str(Path(__file__).parent.parent / "lib")
 sys.path.insert(0, lib_path)
 
 from config import load_config
-from hook_utils import write_hook_output
+from hook_utils import read_hook_input_or_exit, write_hook_output
 from logger import log_debug
 from notifier import format_git_notification
 
@@ -97,19 +97,7 @@ def main():
     Exits silently (code 0) when not a git command or event disabled.
     """
     # Parse hook input from stdin
-    # Uses json.loads(stdin.read()) instead of json.load(stdin) to reliably handle
-    # piped input, which can cause silent failures with file-like object parsing.
-    try:
-        stdin_content = sys.stdin.read()
-        input_data = json.loads(stdin_content)
-    except json.JSONDecodeError as e:
-        sys.stderr.write(f"[ERROR] git_watcher: Invalid JSON input: {e}\n")
-        sys.stderr.write(f"Exiting silently (not a git command context)...\n")
-        sys.exit(0)  # Exit gracefully to avoid hook being disabled
-    except (IOError, OSError) as e:
-        sys.stderr.write(f"[ERROR] git_watcher: Failed to read stdin: {e}\n")
-        sys.stderr.write(f"Exiting silently (not a git command context)...\n")
-        sys.exit(0)  # Exit gracefully to avoid hook being disabled
+    input_data = read_hook_input_or_exit("git_watcher")
 
     # Load config
     config = load_config()

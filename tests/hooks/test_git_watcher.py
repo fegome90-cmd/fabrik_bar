@@ -27,7 +27,7 @@ def test_git_watcher_invalid_json_exits_gracefully(capsys):
 
     captured = capsys.readouterr()
     assert "[ERROR] git_watcher: Invalid JSON input" in captured.err
-    assert "Exiting silently" in captured.err
+    assert "Continuing with minimal context" in captured.err
 
 
 def test_git_watcher_non_git_command_exits(non_git_command_input, capsys):
