@@ -3,6 +3,7 @@
 
 import sys
 from pathlib import Path
+from typing import Optional
 
 # Add lib directory to path
 lib_path = str(Path(__file__).parent.parent / "lib")

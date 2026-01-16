@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Union
 
 from lib.constants import GIT_COMMAND_TIMEOUT
-from lib.logger import log_debug, log_error
+from lib.logger import log_error
 
 
 class GitError(Enum):
@@ -46,7 +46,7 @@ def get_current_branch(
         stderr = result.stderr.strip().lower()
 
         # Not a git repository
-        if "not a git repository" in stderr or "fatal: not a git repository" in stderr:
+        if "not a git repository" in stderr:
             log_error(f"Not a git repository: {cwd}")
             return GitError.NOT_REPO
 
