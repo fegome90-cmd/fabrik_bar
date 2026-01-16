@@ -16,14 +16,10 @@ class SessionContext(TypedDict, total=False):
 class GitEventDetails(TypedDict, total=False):
     """Details extracted from git command.
 
-    Note: The 'from' field is accessed via string key (details["from"])
-    and is set to a placeholder value due to lack of state tracking.
-    To access: details["from"] (not available as class attribute).
-
     Fields:
-        to: str - Target branch name (for branch_switch)
-        message: str - Commit message (for commit events)
-        from: str - Source branch (placeholder only, not tracked)
+        to: Target branch name (for branch_switch events)
+        from: Source branch name (for branch_switch events)
+        message: Commit message (for commit events)
     """
     to: str
     message: str
