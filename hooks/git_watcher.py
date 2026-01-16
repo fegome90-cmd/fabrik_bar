@@ -5,6 +5,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 # Add lib directory to path
 lib_path = str(Path(__file__).parent.parent / "lib")
@@ -22,7 +23,7 @@ def is_git_command(tool_input: dict) -> bool:
     return isinstance(command, str) and command.strip().startswith("git ")
 
 
-def detect_git_event(command: str) -> str:
+def detect_git_event(command: str) -> Optional[str]:
     """Detect the type of git event from command."""
     parts = command.strip().split()
     if len(parts) < 2:
