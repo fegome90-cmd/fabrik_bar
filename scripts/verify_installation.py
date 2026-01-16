@@ -2,6 +2,7 @@
 """Verify fabrik_bar installation integrity."""
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -107,6 +108,29 @@ def check_hook_scripts():
     return True
 
 
+def check_hook_scripts_executable():
+    """Verify hook scripts are executable."""
+    hooks_dir = PLUGIN_DIR / "hooks"
+    scripts = ["session_start.py", "user_prompt_submit.py", "git_watcher.py"]
+
+    all_executable = True
+    for script in scripts:
+        script_path = hooks_dir / script
+        if not script_path.exists():
+            print(f"❌ Hook script missing: {script}")
+            all_executable = False
+            continue
+
+        if not os.access(script_path, os.X_OK):
+            print(f"⚠️  Hook script not executable: {script}")
+            print(f"   Run: chmod +x {script_path}")
+            all_executable = False
+
+    if all_executable:
+        print("✅ Hook scripts are executable")
+    return all_executable
+
+
 def main():
     """Run all verification checks."""
     print("🔍 Verifying fabrik_bar installation...\n")
@@ -116,6 +140,7 @@ def main():
         check_settings_json,
         check_hooks_json,
         check_hook_scripts,
+        check_hook_scripts_executable,
     ]
 
     results = []
