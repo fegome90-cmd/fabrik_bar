@@ -2,8 +2,10 @@
 
 from typing import Any, Dict
 
+from lib.models import GitEventDetails, SessionContext
 
-def format_session_summary(context: Dict[str, Any]) -> str:
+
+def format_session_summary(context: SessionContext) -> str:
     """Format session summary for SessionStart hook."""
     lines = ["## 📊 fabrik_bar - Session Summary", ""]
 
@@ -40,7 +42,7 @@ def format_context_alert(percent: int, threshold: int) -> str:
     return ""
 
 
-def format_git_notification(event: str, details: Dict[str, Any]) -> str:
+def format_git_notification(event: str, details: GitEventDetails) -> str:
     """Format git event notification."""
     event_titles = {
         "branch_switch": "## 🌿 Git Branch Switched",
