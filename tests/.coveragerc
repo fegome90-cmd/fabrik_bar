@@ -1,6 +1,10 @@
 [run]
-source = ../lib
-omit = */__pycache__/*
+source = .
+omit =
+    */__pycache__/*
+    tests/*
+    htmlcov/*
+    .pytest_cache/*
 branch = True
 
 [report]
