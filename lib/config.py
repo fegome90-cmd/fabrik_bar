@@ -49,6 +49,29 @@ DEFAULTS: Dict[str, Any] = {
 }
 
 
+def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    """Deep merge two dictionaries, with override values taking precedence.
+
+    Args:
+        base: The base dictionary (typically defaults)
+        override: The override dictionary (user config)
+
+    Returns:
+        A new dictionary with merged values
+    """
+    result = base.copy()
+
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            # Both are dicts, merge recursively
+            result[key] = _deep_merge(result[key], value)
+        else:
+            # Override with new value
+            result[key] = value
+
+    return result
+
+
 def load_config() -> Dict[str, Any]:
     """Load configuration from local config file or return defaults."""
     if not CONFIG_PATH.exists():
@@ -72,7 +95,7 @@ def load_config() -> Dict[str, Any]:
                 # Simple YAML parsing for our flat config structure
                 try:
                     config = _parse_simple_yaml(yaml_content)
-                    result = {**DEFAULTS, **config} if config else DEFAULTS
+                    result = _deep_merge(DEFAULTS, config) if config else DEFAULTS
                 except (ValueError, KeyError) as e:
                     # Expected parsing errors - malformed YAML
                     log_error(f"Failed to parse YAML config: {e}")
@@ -152,12 +175,7 @@ def _parse_yaml_value(value: str) -> Any:
     if value.startswith("[") and value.endswith("]"):
         return [v.strip().strip('"\'') for v in value[1:-1].split(",") if v.strip()]
 
-    # Try integer
-    try:
-        return int(value)
-    except ValueError:
-        pass
-
+    # Return as string (parser keeps values as strings)
     return value
 
 
@@ -190,12 +208,19 @@ def _parse_simple_yaml(content: str) -> Dict[str, Any]:
                 key = key.strip()
                 value = _strip_inline_comment(value.strip())
                 current_subsection[key] = _parse_yaml_value(value)
-        # Direct key-value under section
-        elif ":" in line and current_section:
+        # Direct key-value under section or at top level
+        elif ":" in line:
             key, value = line.split(":", 1)
             key = key.strip()
             value = _strip_inline_comment(value.strip())
-            config[current_section][key] = _parse_yaml_value(value)
+            parsed_value = _parse_yaml_value(value)
+
+            if current_section:
+                # Under a section
+                config[current_section][key] = parsed_value
+            else:
+                # At top level (flat structure)
+                config[key] = parsed_value
 
     return config
 
