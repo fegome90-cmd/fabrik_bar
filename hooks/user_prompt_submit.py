@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """UserPromptSubmit hook - monitors context usage and alerts when critical."""
 
-import json
 import sys
 from pathlib import Path
 
@@ -9,7 +8,13 @@ from pathlib import Path
 lib_path = str(Path(__file__).parent.parent / "lib")
 sys.path.insert(0, lib_path)
 
-from config import load_config, get_config
+from config import load_config
+from constants import (
+    DEFAULT_CRITICAL_THRESHOLD,
+    DEFAULT_CONTEXT_WINDOW_SIZE,
+    DEFAULT_WARNING_THRESHOLD,
+    HOOK_EVENT_USER_PROMPT_SUBMIT,
+)
 from hook_utils import read_hook_input_or_exit, write_hook_output
 from notifier import format_context_alert
 
@@ -25,7 +30,7 @@ def calculate_context_percent(input_data: dict) -> int:
 
     total_used = input_tokens + cache_create + cache_read
 
-    max_tokens = context_window.get("context_window_size", 200000)
+    max_tokens = context_window.get("context_window_size", DEFAULT_CONTEXT_WINDOW_SIZE)
     if max_tokens > 0:
         percent = int((total_used / max_tokens) * 100)
         return min(max(percent, 0), 100)
@@ -67,19 +72,20 @@ def main():
         sys.stderr.write(f"[ERROR] user_prompt_submit: Failed to calculate context percent: {e}\n")
         sys.exit(0)  # Exit gracefully
 
-    # Check thresholds
-    warning_threshold = alerts_config.get("warning_threshold", 80)
-    critical_threshold = alerts_config.get("critical_threshold", 90)
+    # Check thresholds - use the highest threshold exceeded
+    critical_threshold = alerts_config.get("critical_threshold", DEFAULT_CRITICAL_THRESHOLD)
+    warning_threshold = alerts_config.get("warning_threshold", DEFAULT_WARNING_THRESHOLD)
 
-    alert = None
+    exceeded_threshold = None
     if percent >= critical_threshold:
-        alert = format_context_alert(percent, critical_threshold)
+        exceeded_threshold = critical_threshold
     elif percent >= warning_threshold:
-        alert = format_context_alert(percent, warning_threshold)
+        exceeded_threshold = warning_threshold
 
-    # Output alert if triggered
-    if alert:
-        write_hook_output("UserPromptSubmit", alert)
+    # Output alert if threshold exceeded
+    if exceeded_threshold is not None:
+        alert = format_context_alert(percent, exceeded_threshold)
+        write_hook_output(HOOK_EVENT_USER_PROMPT_SUBMIT, alert)
 
     sys.exit(0)
 
