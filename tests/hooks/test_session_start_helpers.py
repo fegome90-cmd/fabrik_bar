@@ -115,7 +115,34 @@ def test_get_session_context_session_file_read_error():
                     context = session_start.get_session_context()
                     # Note: glob("*.md") includes both bundle1.md and session.md
                     assert context["bundle_count"] == 2
-                    assert context["active_bundles"] == 0
+                    assert context["active_bundles"] is None  # Indicates "unknown" instead of "zero"
+
+
+def test_get_session_context_session_file_decode_error():
+    """Should handle session.md decode errors gracefully."""
+    with patch('pathlib.Path.cwd') as mock_cwd:
+        mock_cwd.return_value = Path('/home/user/myproject')
+
+        with patch('pathlib.Path.home') as mock_home:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                context_dir = Path(tmpdir) / ".claude" / ".context" / "core"
+                context_dir.mkdir(parents=True)
+
+                # Create a bundle file
+                (context_dir / "bundle1.md").touch()
+
+                # Create session file
+                session_file = context_dir / "session.md"
+                session_file.write_text("* Active Bundle 1\n")
+
+                # Mock read_text to raise UnicodeDecodeError
+                with patch.object(Path, 'read_text', side_effect=UnicodeDecodeError('utf-8', b'\x80', 0, 1, 'invalid start byte')):
+                    mock_home.return_value = Path(tmpdir)
+
+                    context = session_start.get_session_context()
+                    # Note: glob("*.md") includes both bundle1.md and session.md
+                    assert context["bundle_count"] == 2
+                    assert context["active_bundles"] is None  # Indicates "unknown" instead of "zero"
 
 
 def test_get_session_context_default_model():

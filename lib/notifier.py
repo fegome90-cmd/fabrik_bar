@@ -19,7 +19,8 @@ def format_session_summary(context: SessionContext) -> str:
     # Bundles
     bundle_count = context.get("bundle_count", 0)
     active_bundles = context.get("active_bundles", 0)
-    lines.append(f"**Bundles**: {bundle_count} loaded | {active_bundles} active")
+    bundle_display = active_bundles if active_bundles is not None else "unknown"
+    lines.append(f"**Bundles**: {bundle_count} loaded | {bundle_display} active")
 
     # MCP
     mcp_servers = context.get("mcp_servers", [])
@@ -34,10 +35,18 @@ def format_session_summary(context: SessionContext) -> str:
 
 
 def format_context_alert(percent: int, threshold: int) -> str:
-    """Format context window alert."""
+    """Format context window alert.
+
+    Args:
+        percent: Current context usage percentage (0-100)
+        threshold: Threshold that was exceeded (determines alert severity)
+
+    Returns:
+        Formatted alert message, or empty string if no alert needed
+    """
     if percent >= 90:
         return f"## ⚠️ Context Window Crítico: {percent}%\n\nConsider pruning context or starting a new session."
-    elif percent >= 80:
+    if percent >= threshold:
         return f"## ⚡ Context Window Alerta: {percent}%\n\nContext window is getting full."
     return ""
 
