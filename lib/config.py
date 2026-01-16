@@ -8,7 +8,11 @@ from typing import Any, Dict
 if Path(__file__).parent not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent))
 
-# Import logger functions at module level
+from constants import (
+    DEFAULT_CRITICAL_THRESHOLD,
+    DEFAULT_GIT_EVENTS,
+    DEFAULT_WARNING_THRESHOLD,
+)
 from logger import log_error, log_warning
 
 # Config path - first check plugin local, then global
@@ -25,8 +29,12 @@ DEFAULTS: Dict[str, Any] = {
     },
     "hooks": {
         "session_start": {"enabled": True, "show_summary": True},
-        "context_alerts": {"enabled": True, "warning_threshold": 80, "critical_threshold": 90},
-        "git_events": {"enabled": True, "events": ["branch_switch", "commit", "merge", "push"]},
+        "context_alerts": {
+            "enabled": True,
+            "warning_threshold": DEFAULT_WARNING_THRESHOLD,
+            "critical_threshold": DEFAULT_CRITICAL_THRESHOLD,
+        },
+        "git_events": {"enabled": True, "events": DEFAULT_GIT_EVENTS},
         "context_changes": {"enabled": True, "notify_on_bundle_change": True},
     },
     "theme": {
@@ -92,8 +100,65 @@ def load_config() -> Dict[str, Any]:
         log_error(f"Failed to parse config file {CONFIG_PATH}: {e}")
         return DEFAULTS
     except Exception as e:
-        log_error(f"Unexpected error loading config: {type(e).__name__}: {e}")
-        return DEFAULTS
+        # Unexpected error - this is a BUG, don't hide it!
+        import traceback
+        error_msg = f"BUG in config loader: {type(e).__name__}: {e}\n{traceback.format_exc()}"
+        sys.stderr.write(f"[FATAL] {error_msg}\n")
+        sys.stderr.write(f"Please report this bug. Using DEFAULTS config.\n")
+        # Re-raise to make failure visible
+        raise
+
+
+def _strip_inline_comment(value: str) -> str:
+    """Strip inline comments from a YAML value.
+
+    Preserves hex color codes like #7FB4CA by only removing #
+    that follows whitespace.
+    """
+    if "#" not in value:
+        return value
+
+    # Find the comment marker - it must be preceded by whitespace
+    comment_pos = -1
+    for i, char in enumerate(value):
+        if char == "#" and i > 0 and value[i - 1].isspace():
+            comment_pos = i
+            break
+
+    if comment_pos > 0:
+        return value[:comment_pos].strip()
+    return value
+
+
+def _parse_yaml_value(value: str) -> Any:
+    """Parse a YAML value string into appropriate Python type."""
+    value = value.strip()
+
+    # Boolean
+    if value.lower() == "true":
+        return True
+    if value.lower() == "false":
+        return False
+
+    # Null/empty
+    if value.lower() == "null" or value == "":
+        return None
+
+    # String with quotes
+    if value.startswith('"') or value.startswith("'"):
+        return value[1:-1]
+
+    # List
+    if value.startswith("[") and value.endswith("]"):
+        return [v.strip().strip('"\'') for v in value[1:-1].split(",") if v.strip()]
+
+    # Try integer
+    try:
+        return int(value)
+    except ValueError:
+        pass
+
+    return value
 
 
 def _parse_simple_yaml(content: str) -> Dict[str, Any]:
@@ -118,58 +183,19 @@ def _parse_simple_yaml(content: str) -> Dict[str, Any]:
             if current_section:
                 config[current_section][subsection_name] = {}
                 current_subsection = config[current_section][subsection_name]
-        # Key-value (e.g., "    enabled: true")
+        # Key-value under subsection (e.g., "    enabled: true")
         elif line.startswith("    ") and ":" in line:
             if current_subsection is not None:
                 key, value = line.split(":", 1)
                 key = key.strip()
-                value = value.strip()
-                # Strip inline comments (but not hex colors like #7FB4CA)
-                if "#" in value:
-                    # Find the comment marker - it must be preceded by whitespace
-                    comment_pos = -1
-                    for i, char in enumerate(value):
-                        if char == "#" and i > 0 and value[i-1].isspace():
-                            comment_pos = i
-                            break
-                    if comment_pos > 0:
-                        value = value[:comment_pos].strip()
-                # Parse value
-                if value.lower() == "true":
-                    value = True
-                elif value.lower() == "false":
-                    value = False
-                elif value.lower() == "null" or value == "":
-                    value = None
-                elif value.startswith('"') or value.startswith("'"):
-                    value = value[1:-1]
-                elif value.startswith("[") and value.endswith("]"):
-                    # Parse list
-                    value = [v.strip().strip('"\'') for v in value[1:-1].split(",") if v.strip()]
-                else:
-                    # Try to convert to int
-                    try:
-                        value = int(value)
-                    except ValueError:
-                        pass
-                current_subsection[key] = value
+                value = _strip_inline_comment(value.strip())
+                current_subsection[key] = _parse_yaml_value(value)
+        # Direct key-value under section
         elif ":" in line and current_section:
-            # Direct key-value under section
             key, value = line.split(":", 1)
             key = key.strip()
-            value = value.strip()
-            # Strip inline comments (but not hex colors like #7FB4CA)
-            if "#" in value:
-                comment_pos = -1
-                for i, char in enumerate(value):
-                    if char == "#" and i > 0 and value[i-1].isspace():
-                        comment_pos = i
-                        break
-                if comment_pos > 0:
-                    value = value[:comment_pos].strip()
-            if value.startswith('"') or value.startswith("'"):
-                value = value[1:-1]
-            config[current_section][key] = value
+            value = _strip_inline_comment(value.strip())
+            config[current_section][key] = _parse_yaml_value(value)
 
     return config
 
