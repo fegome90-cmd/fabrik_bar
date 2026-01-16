@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
 """PreToolUse hook - detects git events via Bash commands."""
 
-import json
-import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 # Add lib directory to path
 lib_path = str(Path(__file__).parent.parent / "lib")
 sys.path.insert(0, lib_path)
 
 from config import load_config
+from constants import (
+    DEFAULT_GIT_EVENTS,
+    GIT_EVENT_BRANCH_SWITCH,
+    GIT_EVENT_COMMIT,
+    GIT_EVENT_MERGE,
+    GIT_EVENT_PUSH,
+    HOOK_EVENT_PRE_TOOL_USE,
+)
+from git import GitError, get_current_branch
 from hook_utils import read_hook_input_or_exit, write_hook_output
-from logger import log_debug
 from notifier import format_git_notification
 
 
@@ -32,11 +37,11 @@ def detect_git_event(command: str) -> Optional[str]:
     git_subcommand = parts[1]
 
     event_map = {
-        "checkout": "branch_switch",
-        "switch": "branch_switch",
-        "commit": "commit",
-        "merge": "merge",
-        "push": "push",
+        "checkout": GIT_EVENT_BRANCH_SWITCH,
+        "switch": GIT_EVENT_BRANCH_SWITCH,
+        "commit": GIT_EVENT_COMMIT,
+        "merge": GIT_EVENT_MERGE,
+        "push": GIT_EVENT_PUSH,
         "pull": "pull",
     }
 
@@ -46,31 +51,20 @@ def detect_git_event(command: str) -> Optional[str]:
 def extract_git_details(command: str, event: str) -> dict:
     """Extract details from git command."""
     details = {}
-    cwd = Path.cwd()
 
     if event == "branch_switch":
-        # Try to get current branch after checkout
-        try:
-            result = subprocess.run(
-                ["git", "branch", "--show-current"],
-                cwd=cwd,
-                capture_output=True,
-                text=True,
-                timeout=2,
-            )
-            if result.returncode == 0:
-                details["to"] = result.stdout.strip()
-                # We'd need to track previous branch separately
-                details["from"] = "previous"
-        except FileNotFoundError:
-            log_debug("Git not found in PATH, using 'unknown' for branch")
+        # Get current branch after checkout
+        cwd = Path.cwd()
+        branch = get_current_branch(cwd)
+        if isinstance(branch, str):
+            details["to"] = branch
+        else:
+            # branch is a GitError enum - already logged by get_current_branch
             details["to"] = "unknown"
-        except subprocess.TimeoutExpired:
-            log_debug("Git command timed out, using 'unknown' for branch")
-            details["to"] = "unknown"
+        details["from"] = "previous"  # Would need state tracking for actual value
 
     elif event == "commit":
-        # Try to get commit message
+        # Extract commit message from -m flag
         parts = command.split()
         if "-m" in parts:
             idx = parts.index("-m")
@@ -120,7 +114,7 @@ def main():
         sys.exit(0)
 
     # Check if this event is enabled
-    enabled_events = git_config.get("events", ["branch_switch", "commit", "merge", "push"])
+    enabled_events = git_config.get("events", DEFAULT_GIT_EVENTS)
     if event not in enabled_events:
         sys.exit(0)
 
@@ -131,7 +125,7 @@ def main():
     notification = format_git_notification(event, details)
 
     # Output
-    write_hook_output("PreToolUse", notification)
+    write_hook_output(HOOK_EVENT_PRE_TOOL_USE, notification)
 
 
 if __name__ == "__main__":
