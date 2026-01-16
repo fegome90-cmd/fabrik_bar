@@ -2,9 +2,35 @@
 import sys
 from pathlib import Path
 from pytest import fixture
+from lib import config as config_module
 
 # Add lib to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
+
+
+# =============================================================================
+# Config Fixtures
+# =============================================================================
+
+
+@fixture
+def restore_config_path():
+    """Restore original config path after test.
+
+    Usage:
+        def test_something(restore_config_path, tmp_path):
+            original_path = restore_config_path
+            config_module.CONFIG_PATH = tmp_path / "test.md"
+            try:
+                # test code
+            finally:
+                config_module.CONFIG_PATH = original_path
+    """
+    original_path = config_module.CONFIG_PATH
+    yield original_path
+    # After test, restore if not already restored
+    if config_module.CONFIG_PATH != original_path:
+        config_module.CONFIG_PATH = original_path
 
 
 # =============================================================================

@@ -1,33 +1,26 @@
 """Tests for config.py module."""
 
 import pytest
-from config import load_config, get_config, _parse_simple_yaml
+from lib import config
+from lib.config import load_config, get_config, _parse_simple_yaml, DEFAULTS
 
 
 class TestLoadConfig:
     """Test config loading."""
 
-    def test_returns_defaults_when_config_missing(self, tmp_path):
+    def test_returns_defaults_when_config_missing(self, restore_config_path, tmp_path):
         """Should return defaults when config file doesn't exist."""
-        import tempfile
-        import os
-
-        # Temporarily set config to non-existent path
-        from lib import config
-        original_path = config.CONFIG_PATH
         config.CONFIG_PATH = tmp_path / "nonexistent.md"
 
         try:
             result = config.load_config()
             assert result is not None
-            assert result["statusline"]["show_bundles"] is True
+            assert result["statusline"]["show_bundles"] is DEFAULTS["statusline"]["show_bundles"]
         finally:
-            config.CONFIG_PATH = original_path
+            config.CONFIG_PATH = restore_config_path
 
-    def test_parses_yaml_frontmatter(self, tmp_path):
+    def test_parses_yaml_frontmatter(self, restore_config_path, tmp_path):
         """Should extract YAML from markdown frontmatter."""
-        from lib import config
-
         config_file = tmp_path / "test.md"
         config_file.write_text("""---
 enabled: true
@@ -36,19 +29,16 @@ timeout: 100
 Some markdown content
 """)
 
-        original_path = config.CONFIG_PATH
         config.CONFIG_PATH = config_file
 
         try:
             result = config.load_config()
             assert result is not None
         finally:
-            config.CONFIG_PATH = original_path
+            config.CONFIG_PATH = restore_config_path
 
-    def test_merges_with_defaults(self, tmp_path):
+    def test_merges_with_defaults(self, restore_config_path, tmp_path):
         """Should merge user config with defaults."""
-        from lib import config
-
         config_file = tmp_path / "test.md"
         config_file.write_text("""---
 statusline:
@@ -56,7 +46,6 @@ statusline:
 ---
 """)
 
-        original_path = config.CONFIG_PATH
         config.CONFIG_PATH = config_file
 
         try:
@@ -64,9 +53,9 @@ statusline:
             # User override applied
             assert result["statusline"]["show_bundles"] is False
             # Other defaults preserved
-            assert result["statusline"]["show_session_timer"] is True
+            assert result["statusline"]["show_session_timer"] is DEFAULTS["statusline"]["show_session_timer"]
         finally:
-            config.CONFIG_PATH = original_path
+            config.CONFIG_PATH = restore_config_path
 
 
 class TestGetConfig:
@@ -86,33 +75,23 @@ class TestGetConfig:
 class TestParseSimpleYaml:
     """Test custom YAML parser."""
 
-    def test_parses_booleans(self):
-        """Should parse true/false correctly."""
-        yaml = "enabled: true\ndisabled: false"
-        result = _parse_simple_yaml(yaml)
-        assert result["enabled"] is True
-        assert result["disabled"] is False
-
-    def test_parses_integers(self):
-        """Should parse integers correctly."""
-        yaml = "timeout: 500"
-        result = _parse_simple_yaml(yaml)
-        assert result["timeout"] == "500"  # Note: parser returns strings
-
-    def test_parses_lists(self):
-        """Should parse comma-separated lists."""
-        yaml = "events: [branch_switch, commit]"
-        result = _parse_simple_yaml(yaml)
-        assert result["events"] == ["branch_switch", "commit"]
-
-    def test_strips_inline_comments(self):
-        """Should strip comments after whitespace."""
-        yaml = "timeout: 500 # milliseconds"
-        result = _parse_simple_yaml(yaml)
-        assert result["timeout"] == "500"
-
-    def test_preserves_hex_colors(self):
-        """Should not strip # in hex color codes."""
-        yaml = 'primary: "#7FB4CA" # blue'
-        result = _parse_simple_yaml(yaml)
-        assert result["primary"] == "#7FB4CA"
+    @pytest.mark.parametrize(
+        "yaml_input,expected_key,expected_value",
+        [
+            # Booleans
+            ("enabled: true\ndisabled: false", "enabled", True),
+            ("enabled: true\ndisabled: false", "disabled", False),
+            # Integers (returned as strings by parser)
+            ("timeout: 500", "timeout", "500"),
+            # Lists
+            ("events: [branch_switch, commit]", "events", ["branch_switch", "commit"]),
+            # Comments
+            ("timeout: 500 # milliseconds", "timeout", "500"),
+            # Hex colors with comments
+            ('primary: "#7FB4CA" # blue', "primary", "#7FB4CA"),
+        ],
+    )
+    def test_parse_yaml_values(self, yaml_input, expected_key, expected_value):
+        """Should parse various YAML value types correctly."""
+        result = _parse_simple_yaml(yaml_input)
+        assert result[expected_key] == expected_value
