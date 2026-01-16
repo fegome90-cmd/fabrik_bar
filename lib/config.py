@@ -1,10 +1,10 @@
 """Configuration loader for fabrik_bar."""
 
-import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 # Ensure current directory is in path for sibling imports
+import sys
 if Path(__file__).parent not in sys.path:
     sys.path.insert(0, str(Path(__file__).parent))
 
@@ -79,19 +79,16 @@ def load_config() -> Dict[str, Any]:
 
     try:
         with open(CONFIG_PATH, encoding='utf-8') as f:
-            # Extract YAML from markdown (between --- and ---)
+            # Extract YAML from markdown frontmatter (between first pair of --- delimiters)
             content = f.read()
             if content.startswith("---"):
-                parts = content.split("---", 1)
-                if len(parts) < 2:
+                parts = content.split("---")
+                if len(parts) < 3:
                     # Malformed YAML delimiters - log warning and use defaults
-                    sys.stderr.write("[WARN] config: Malformed YAML delimiters, using defaults\n")
+                    log_warning("Malformed YAML delimiters in config file, using defaults")
                     return DEFAULTS
-                _, yaml_content = parts
-                if "---" in yaml_content:
-                    yaml_parts = yaml_content.split("---", 1)
-                    if len(yaml_parts) >= 2:
-                        yaml_content, _ = yaml_parts[0], yaml_parts[1]
+                # YAML is between first and second ---
+                yaml_content = parts[1]
                 # Simple YAML parsing for our flat config structure
                 try:
                     config = _parse_simple_yaml(yaml_content)
@@ -126,8 +123,8 @@ def load_config() -> Dict[str, Any]:
         # Unexpected error - this is a BUG, don't hide it!
         import traceback
         error_msg = f"BUG in config loader: {type(e).__name__}: {e}\n{traceback.format_exc()}"
-        sys.stderr.write(f"[FATAL] {error_msg}\n")
-        sys.stderr.write(f"Please report this bug. Using DEFAULTS config.\n")
+        log_error(f"FATAL: {error_msg}")
+        log_error("Please report this bug. Using DEFAULTS config.")
         # Re-raise to make failure visible
         raise
 
@@ -225,7 +222,7 @@ def _parse_simple_yaml(content: str) -> Dict[str, Any]:
     return config
 
 
-def get_config(key: str, default: Any = None) -> Any:
+def get_config(key: str, default: Any = None) -> Optional[Any]:
     """Get specific config value by dot notation key."""
     config = load_config()
     keys = key.split(".")
