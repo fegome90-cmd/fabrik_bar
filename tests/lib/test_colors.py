@@ -85,6 +85,16 @@ class TestAnsi256Function:
             result = ansi_256(code)
             assert f"\033[38;5;{code}m" == result
 
+    def test_raises_for_negative_code(self):
+        """Should raise ValueError for negative codes."""
+        with pytest.raises(ValueError, match="Color code must be between 0 and 255, got -1"):
+            ansi_256(-1)
+
+    def test_raises_for_code_above_255(self):
+        """Should raise ValueError for codes above 255."""
+        with pytest.raises(ValueError, match="Color code must be between 0 and 255, got 256"):
+            ansi_256(256)
+
 
 class TestAnsiModifiers:
     """Test ANSI modifier constants."""
