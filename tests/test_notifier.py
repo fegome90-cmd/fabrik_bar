@@ -44,14 +44,14 @@ class TestFormatContextAlert:
         result = format_context_alert(90, 90)
         assert "⚠️" in result
         assert "90%" in result
-        assert "Crítico" in result
+        assert "Critical" in result
 
     def test_warning_alert_at_80_percent(self):
         """Should show warning alert at 80%."""
         result = format_context_alert(80, 80)
         assert "⚡" in result
         assert "80%" in result
-        assert "Alerta" in result
+        assert "Warning" in result
 
     def test_no_alert_below_threshold(self):
         """Should return empty string below threshold."""

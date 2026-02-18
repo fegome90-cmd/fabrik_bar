@@ -1,4 +1,9 @@
-"""Configuration loader for fabrik_bar."""
+"""Configuration loader for fabrik_bar.
+
+Note: Color definitions are centralized in lib/colors.py.
+The theme.colors section in DEFAULTS is kept for backward compatibility
+but colors.py is the single source of truth for ANSI codes.
+"""
 
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -37,6 +42,8 @@ DEFAULTS: Dict[str, Any] = {
         "git_events": {"enabled": True, "events": DEFAULT_GIT_EVENTS},
         "context_changes": {"enabled": True, "notify_on_bundle_change": True},
     },
+    # Theme colors are defined in lib/colors.py - this is for config file compatibility
+    # See colors.COLORS for the single source of truth
     "theme": {
         "colors": {
             "primary": "#7FB4CA",
