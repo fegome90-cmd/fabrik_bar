@@ -1,0 +1,24 @@
+{
+  "name": "fabrik_bar",
+  "version": "1.0.0",
+  "description": "Hybrid information display system for Claude Code - persistent statusline + contextual hook notifications",
+  "author": {
+    "name": "Felipe"
+  },
+  "license": "MIT",
+  "keywords": ["statusline", "context", "notifications", "hooks"],
+  "hooks": [
+    {
+      "name": "session_start",
+      "description": "Display session startup summary with context status"
+    },
+    {
+      "name": "user_prompt_submit",
+      "description": "Check context window usage and display alerts"
+    },
+    {
+      "name": "git_watcher",
+      "description": "Detect and notify about git events (branch, commit, merge, push)"
+    }
+  ]
+}

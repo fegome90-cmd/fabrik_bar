@@ -1,0 +1,14 @@
+[run]
+source = .
+omit =
+    */__pycache__/*
+    tests/*
+    htmlcov/*
+    .pytest_cache/*
+branch = True
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:
+    raise NotImplementedError

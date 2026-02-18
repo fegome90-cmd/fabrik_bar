@@ -1,0 +1,2 @@
+{"operation":"read","ts":1770548318,"source":"hook","file_path":"plugin.json","tool":"Read","tool_input":"{\"file_path\": \"/Users/felipe_gonzalez/.claude/plugins/marketplaces/local/plugins/fabrik_bar/plugin.json\"}"}
+{"operation":"read","ts":1770650108,"source":"hook","file_path":"hooks/session_start.py","tool":"Read","tool_input":"{\"file_path\": \"/Users/felipe_gonzalez/.claude/plugins/marketplaces/local/plugins/fabrik_bar/hooks/session_start.py\"}"}
