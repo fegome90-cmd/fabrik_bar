@@ -45,9 +45,9 @@ def format_context_alert(percent: int, threshold: int) -> str:
         Formatted alert message, or empty string if no alert needed
     """
     if percent >= 90:
-        return f"## ⚠️ Context Window Crítico: {percent}%\n\nConsider pruning context or starting a new session."
+        return f"## ⚠️ Context Window Critical: {percent}%\n\nConsider pruning context or starting a new session."
     if percent >= threshold:
-        return f"## ⚡ Context Window Alerta: {percent}%\n\nContext window is getting full."
+        return f"## ⚡ Context Window Warning: {percent}%\n\nContext window is getting full."
     return ""
 
 
