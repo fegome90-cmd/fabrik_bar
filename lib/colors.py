@@ -5,10 +5,15 @@ Design Direction: Utility & Function
 - Color for semantic meaning only
 - High contrast for readability
 
-This is the single source of truth for all colors used in:
+This module is intended to be the single source of truth for all colors used in:
 - statusline.sh (via ANSI codes)
 - lib/config.py (via hex values)
 - hooks (for formatted output)
+
+Other modules and scripts should import from here for color definitions rather than
+defining their own, so that the color system remains centralized and consistent.
+
+Note: This is preparatory infrastructure for future color system integration.
 """
 
 from dataclasses import dataclass
@@ -92,7 +97,12 @@ def ansi_256(code: int) -> str:
 
     Returns:
         ANSI escape sequence string
+
+    Raises:
+        ValueError: If code is not in valid range 0-255
     """
+    if code < 0 or code > 255:
+        raise ValueError(f"Color code must be between 0 and 255, got {code}")
     return f"\033[38;5;{code}m"
 
 
