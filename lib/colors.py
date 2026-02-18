@@ -12,6 +12,8 @@ This module is intended to be the single source of truth for all colors used in:
 
 Other modules and scripts should import from here for color definitions rather than
 defining their own, so that the color system remains centralized and consistent.
+
+Note: This is preparatory infrastructure for future color system integration.
 """
 
 from dataclasses import dataclass
@@ -97,7 +99,7 @@ def ansi_256(code: int) -> str:
         ANSI escape sequence string
 
     Raises:
-        ValueError: If code is not in range 0-255
+        ValueError: If code is not in valid range 0-255
     """
     if code < 0 or code > 255:
         raise ValueError(f"Color code must be between 0 and 255, got {code}")
