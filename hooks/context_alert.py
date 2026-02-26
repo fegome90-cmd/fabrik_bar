@@ -10,9 +10,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-# Add lib directory to path
-lib_path = str(Path(__file__).parent.parent / "lib")
-sys.path.insert(0, lib_path)
+# Bootstrap: ensure lib is available before any lib imports
+from bootstrap import ensure_lib_available
+sys.path.insert(0, ensure_lib_available())
 
 from constants import (
     DEFAULT_CRITICAL_THRESHOLD,

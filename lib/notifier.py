@@ -2,7 +2,7 @@
 
 from typing import Any, Dict
 
-from lib.models import GitEventDetails, SessionContext
+from models import GitEventDetails, SessionContext
 
 
 def format_session_summary(context: SessionContext) -> str:
