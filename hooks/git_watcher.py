@@ -1,16 +1,25 @@
 #!/usr/bin/env python3
 """PreToolUse hook - detects git events via Bash commands."""
 
-import json
-import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 # Add lib directory to path
 lib_path = str(Path(__file__).parent.parent / "lib")
 sys.path.insert(0, lib_path)
 
 from config import load_config
+from constants import (
+    DEFAULT_GIT_EVENTS,
+    GIT_EVENT_BRANCH_SWITCH,
+    GIT_EVENT_COMMIT,
+    GIT_EVENT_MERGE,
+    GIT_EVENT_PUSH,
+    HOOK_EVENT_PRE_TOOL_USE,
+)
+from git import GitError, get_current_branch
+from hook_utils import read_hook_input_or_exit, write_hook_output
 from notifier import format_git_notification
 
 
@@ -20,20 +29,20 @@ def is_git_command(tool_input: dict) -> bool:
     return isinstance(command, str) and command.strip().startswith("git ")
 
 
-def detect_git_event(command: str) -> str:
+def detect_git_event(command: str) -> Optional[str]:
     """Detect the type of git event from command."""
     parts = command.strip().split()
-    if len(parts) < 2:  # FIXED SYNTAX ERROR from plan
+    if len(parts) < 2:
         return None
 
     git_subcommand = parts[1]
 
     event_map = {
-        "checkout": "branch_switch",
-        "switch": "branch_switch",
-        "commit": "commit",
-        "merge": "merge",
-        "push": "push",
+        "checkout": GIT_EVENT_BRANCH_SWITCH,
+        "switch": GIT_EVENT_BRANCH_SWITCH,
+        "commit": GIT_EVENT_COMMIT,
+        "merge": GIT_EVENT_MERGE,
+        "push": GIT_EVENT_PUSH,
         "pull": "pull",
     }
 
@@ -43,27 +52,20 @@ def detect_git_event(command: str) -> str:
 def extract_git_details(command: str, event: str) -> dict:
     """Extract details from git command."""
     details = {}
-    cwd = Path.cwd()
 
     if event == "branch_switch":
-        # Try to get current branch after checkout
-        try:
-            result = subprocess.run(
-                ["git", "branch", "--show-current"],
-                cwd=cwd,
-                capture_output=True,
-                text=True,
-                timeout=2,
-            )
-            if result.returncode == 0:
-                details["to"] = result.stdout.strip()
-                # We'd need to track previous branch separately
-                details["from"] = "previous"
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            pass
+        # Get current branch after checkout
+        cwd = Path.cwd()
+        branch = get_current_branch(cwd)
+        if isinstance(branch, str):
+            details["to"] = branch
+        else:
+            # branch is a GitError enum - already logged by get_current_branch
+            details["to"] = "unknown"
+        details["from"] = "previous"  # Would need state tracking for actual value
 
     elif event == "commit":
-        # Try to get commit message
+        # Extract commit message from -m flag
         parts = command.split()
         if "-m" in parts:
             idx = parts.index("-m")
@@ -74,11 +76,24 @@ def extract_git_details(command: str, event: str) -> dict:
 
 
 def main():
+    """PreToolUse hook main entry point for git event detection.
+
+    Expected JSON input via stdin:
+    {
+        "toolInput": {
+            "command": "git checkout main"
+        }
+    }
+
+    Outputs git notification as additionalContext JSON to stdout when:
+    - Branch switched (git checkout/switch)
+    - Commit made (git commit -m "message")
+    - Merge, push, or pull commands detected
+
+    Exits silently (code 0) when not a git command or event disabled.
+    """
     # Parse hook input from stdin
-    try:
-        input_data = json.load(sys.stdin)
-    except json.JSONDecodeError:
-        sys.exit(0)
+    input_data = read_hook_input_or_exit("git_watcher")
 
     # Load config
     config = load_config()
@@ -100,7 +115,7 @@ def main():
         sys.exit(0)
 
     # Check if this event is enabled
-    enabled_events = git_config.get("events", ["branch_switch", "commit", "merge", "push"])
+    enabled_events = git_config.get("events", DEFAULT_GIT_EVENTS)
     if event not in enabled_events:
         sys.exit(0)
 
@@ -111,15 +126,7 @@ def main():
     notification = format_git_notification(event, details)
 
     # Output
-    output = {
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "additionalContext": notification,
-        }
-    }
-
-    print(json.dumps(output))
-    sys.exit(0)
+    write_hook_output(HOOK_EVENT_PRE_TOOL_USE, notification)
 
 
 if __name__ == "__main__":

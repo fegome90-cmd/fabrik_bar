@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """SessionStart hook - displays session summary when Claude Code starts."""
 
-import json
-import subprocess
 import sys
 from pathlib import Path
 
@@ -11,6 +9,10 @@ lib_path = str(Path(__file__).parent.parent / "lib")
 sys.path.insert(0, lib_path)
 
 from config import load_config
+from constants import ACTIVE_BUNDLE_MARKERS, CONTEXT_CORE_DIR, HOOK_EVENT_SESSION_START, SESSION_FILE
+from git import GitError, get_current_branch
+from hook_utils import read_hook_input_with_fallback, write_hook_output
+from logger import log_debug, log_error
 from notifier import format_session_summary
 
 
@@ -23,29 +25,32 @@ def get_session_context() -> dict:
     context["directory"] = cwd.name
 
     # Git branch
-    try:
-        result = subprocess.run(
-            ["git", "branch", "--show-current"],
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            timeout=2,
-        )
-        if result.returncode == 0:
-            context["git_branch"] = result.stdout.strip()
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    git_branch = get_current_branch(cwd)
+    if isinstance(git_branch, str):
+        context["git_branch"] = git_branch
+    elif git_branch is not None:
+        # git_branch is a GitError enum - already logged by get_current_branch
         pass
 
     # Bundle count
-    context_dir = Path.home() / ".claude" / ".context" / "core"
-    if context_dir.exists():
-        md_files = list(context_dir.glob("*.md"))
+    if CONTEXT_CORE_DIR.exists():
+        md_files = list(CONTEXT_CORE_DIR.glob("*.md"))
         context["bundle_count"] = len(md_files)
 
-        session_file = context_dir / "session.md"
-        if session_file.exists():
-            active_items = len([line for line in session_file.read_text().splitlines() if line.startswith(("* ", "- "))])
-            context["active_bundles"] = active_items
+        if SESSION_FILE.exists():
+            try:
+                content = SESSION_FILE.read_text()
+                active_items = len(
+                    [line for line in content.splitlines() if line.startswith(ACTIVE_BUNDLE_MARKERS)]
+                )
+                context["active_bundles"] = active_items
+            except (OSError, PermissionError) as e:
+                # File was deleted or became unreadable between exists() and read_text()
+                log_error(f"Failed to read {SESSION_FILE}: {e}")
+                context["active_bundles"] = None  # Indicates "unknown" instead of "zero"
+            except UnicodeDecodeError as e:
+                log_error(f"Failed to decode {SESSION_FILE}: {e}")
+                context["active_bundles"] = None
 
     # Model will be provided from hook input
     context["model"] = "Claude"
@@ -54,11 +59,20 @@ def get_session_context() -> dict:
 
 
 def main():
+    """SessionStart hook main entry point.
+
+    Expected JSON input via stdin:
+    {
+        "model": {
+            "display_name": "Claude Opus 4.5"
+        },
+        ...other optional fields...
+    }
+
+    Outputs session summary as additionalContext JSON to stdout.
+    """
     # Parse hook input from stdin
-    try:
-        input_data = json.load(sys.stdin)
-    except json.JSONDecodeError:
-        input_data = {}
+    input_data = read_hook_input_with_fallback("session_start")
 
     # Get model from input
     model = input_data.get("model", {}).get("display_name", "Claude")
@@ -76,15 +90,7 @@ def main():
     summary = format_session_summary(context)
 
     # Output as additionalContext
-    output = {
-        "hookSpecificOutput": {
-            "hookEventName": "SessionStart",
-            "additionalContext": summary,
-        }
-    }
-
-    print(json.dumps(output))
-    sys.exit(0)
+    write_hook_output(HOOK_EVENT_SESSION_START, summary)
 
 
 if __name__ == "__main__":
